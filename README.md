@@ -84,5 +84,4 @@ Exemple :
 	}
 	
 	fmt.Println("Vote", forest.Vote([]float64{0.9, 0.9, 0.9, 0.9}))
-
 ```
