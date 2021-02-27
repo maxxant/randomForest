@@ -82,7 +82,6 @@ Exemple :
 	if forest, errForest = Load("saved/forestTest.bin"); errForest != nil {
 		return
 	}
-	
-	fmt.Println("Vote", forest.Vote([]float64{0.9, 0.9, 0.9, 0.9}))
 
+	fmt.Println("Vote", forest.Vote([]float64{0.9, 0.9, 0.9, 0.9}))
 ```
