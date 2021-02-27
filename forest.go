@@ -1,12 +1,16 @@
 package randomforest
 
 import (
+	"encoding/gob"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
+	"os"
 	"sort"
 	"sync"
 
+	"github.com/google/uuid"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -203,6 +207,71 @@ func (forest *Forest) newTree(index int, wg *sync.WaitGroup) {
 	mux.Lock()
 	forest.Trees[index] = tree
 	mux.Unlock()
+}
+
+//Save Will save the state of the forest into file
+func (forest *Forest) Save(folder string) (string, error) {
+
+	var resultFile *os.File
+	var errFile error
+	var fileName string = ""
+	//Create File Name
+	id := uuid.New().String()
+	fileName = "forest-" + id + ".bin"
+
+	//Create results folder
+	if _, errFolder := os.Stat(folder); os.IsNotExist(errFolder) {
+		if errMkDir := os.Mkdir(folder, os.ModeDir); errMkDir != nil {
+			log.Fatalln("Saving: error while saving file : ", errMkDir)
+			return "", errMkDir
+		}
+	}
+
+	//Check if file already exists (just in case...)
+	fileName = folder + fileName
+	if _, errExits := os.Stat(fileName); !os.IsNotExist(errExits) {
+		log.Fatalln("Saving: error while saving file : ", errExits)
+		return "", errExits
+	}
+
+	//Create the File
+	if resultFile, errFile = os.Create(fileName); errFile == nil {
+		defer resultFile.Close()
+	} else {
+		log.Fatalln("Saving: error while saving file : ", errFile)
+		return "", errFile
+	}
+	//Encode Struct
+	encoder := gob.NewEncoder(resultFile)
+	if errEncoding := encoder.Encode(forest); errEncoding != nil {
+		return "", errEncoding
+	}
+
+	return fileName, nil
+}
+
+//Load load forest from file
+func Load(pathForest string) (*Forest, error) {
+
+	if _, errExits := os.Stat(pathForest); os.IsNotExist(errExits) {
+		return nil, errExits
+	}
+
+	var forestFile *os.File = nil
+	var errorForestFile error
+
+	if forestFile, errorForestFile = os.Open(pathForest); errorForestFile != nil {
+		return nil, errorForestFile
+	}
+
+	decoder := gob.NewDecoder(forestFile)
+	forest := &Forest{}
+
+	if errDecoder := decoder.Decode(&forest); errDecoder != nil {
+
+		return nil, errDecoder
+	}
+	return forest, nil
 }
 
 // PrintFeatureImportance print list of features
