@@ -1,5 +1,7 @@
 GoDoc: https://godoc.org/github.com/malaschitz/randomForest
 
+This fork add Saving/Loading functions see the section Saving/Loading [click on this link](##-Saving/Loading)
+
 Test: 
 ```go
 go test ./... -cover -coverpkg=.  
@@ -55,3 +57,32 @@ forest.AddDataRow(data, res, 1000, 10, 2000)
 // AddDataRow : add new row, trim oldest row if there is more than 1000 rows, calculate a new 10 trees, but remove oldest trees if there is more than 2000 trees.
 ```
 
+
+## Saving/Loading
+
+### Saving 
+Will Save the forest structure into binary file
+
+format : forest-UUID.bin
+
+Exemple:
+```go
+	if fileName, err := forest.Save("saved/"); err != nil {
+		t.Error(err)
+		return
+	}
+```
+
+### Loading
+Will load forest structure from binary file :
+
+Exemple :
+
+```go
+	if forest, errForest = Load("saved/forestTest.bin"); errForest != nil {
+		return
+	}
+	
+	fmt.Println("Vote", forest.Vote([]float64{0.9, 0.9, 0.9, 0.9}))
+
+```
