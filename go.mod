@@ -1,4 +1,4 @@
-module github.com/malaschitz/randomForest
+module github.com/MandelV/randomForest
 
 require (
 	github.com/google/uuid v1.2.0
