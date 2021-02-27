@@ -63,9 +63,11 @@ forest.AddDataRow(data, res, 1000, 10, 2000)
 ### Saving 
 Will Save the forest structure into binary file
 
-format : forest-UUID.bin
+File name format:
+```
+forest-UUID.bin
+```
 
-Exemple:
 ```go
 	if fileName, err := forest.Save("saved/"); err != nil {
 		t.Error(err)
@@ -75,8 +77,6 @@ Exemple:
 
 ### Loading
 Will load forest structure from binary file :
-
-Exemple :
 
 ```go
 	if forest, errForest = Load("saved/forestTest.bin"); errForest != nil {
