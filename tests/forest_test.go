@@ -1,9 +1,11 @@
-package randomforest
+package test
 
 import (
 	"math/rand"
 	"os"
 	"testing"
+
+	randomforest "github.com/MandelV/randomForest"
 )
 
 func TestSaving(t *testing.T) {
@@ -15,9 +17,9 @@ func TestSaving(t *testing.T) {
 		xData = append(xData, x)
 		yData = append(yData, y)
 	}
-	forest := &Forest{}
+	forest := &randomforest.Forest{}
 
-	forestData := ForestData{X: xData, Class: yData}
+	forestData := randomforest.ForestData{X: xData, Class: yData}
 	forest.Data = forestData
 	forest.Train(1000)
 
@@ -38,10 +40,10 @@ func TestSaving(t *testing.T) {
 
 func TestLoading(t *testing.T) {
 
-	var forest *Forest = nil
+	var forest *randomforest.Forest = nil
 	var errForest error
 
-	if forest, errForest = Load("saved/forestTest.bin"); errForest != nil {
+	if forest, errForest = randomforest.Load("saved/forestTest.bin"); errForest != nil {
 		t.Error(errForest)
 		return
 	}

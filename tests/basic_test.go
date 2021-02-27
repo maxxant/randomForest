@@ -1,10 +1,10 @@
-package main
+package test
 
 import (
 	"math/rand"
 	"testing"
 
-	randomforest "github.com/malaschitz/randomForest"
+	randomforest "github.com/MandelV/randomForest"
 )
 
 func TestSimple(t *testing.T) {

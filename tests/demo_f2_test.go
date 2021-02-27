@@ -1,12 +1,12 @@
-package main
+package test
 
 import (
 	"fmt"
 	"math/rand"
 	"testing"
 
-	randomforest "github.com/malaschitz/randomForest"
-	"github.com/malaschitz/randomForest/tests/generator"
+	randomforest "github.com/MandelV/randomForest"
+	"github.com/MandelV/randomForest/tests/generator"
 )
 
 /*

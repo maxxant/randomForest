@@ -1,11 +1,11 @@
-package main
+package test
 
 import (
 	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/malaschitz/randomForest/tests/generator"
+	"github.com/MandelV/randomForest/tests/generator"
 )
 
 //Example of generated dataset

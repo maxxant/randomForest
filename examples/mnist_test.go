@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	randomforest "github.com/malaschitz/randomForest"
+	randomforest "github.com/MandelV/randomForest"
 	"github.com/petar/GoMNIST"
 )
 

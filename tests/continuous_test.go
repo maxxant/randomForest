@@ -1,11 +1,11 @@
-package main
+package test
 
 import (
 	"fmt"
 	"math/rand"
 	"testing"
 
-	randomforest "github.com/malaschitz/randomForest"
+	randomforest "github.com/MandelV/randomForest"
 )
 
 func TestContinuous(t *testing.T) {
