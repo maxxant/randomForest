@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"testing"
 
-	randomforest "github.com/MandelV/randomForest"
-	"github.com/MandelV/randomForest/tests/generator"
+	randomforest "github.com/MandelV/randomForest/v2"
+	"github.com/MandelV/randomForest/v2/tests/generator"
 )
 
 // DeepForest create a bunch of subforests. Results of these subforest are a new inputs (new attributes for original dataset).

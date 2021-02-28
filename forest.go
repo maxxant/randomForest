@@ -1,9 +1,11 @@
 package randomforest
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -217,34 +219,48 @@ func (forest *Forest) Save(folder string) (string, error) {
 	var fileName string = ""
 	//Create File Name
 	id := uuid.New().String()
-	fileName = "forest-" + id + ".bin"
+	fileName = "forest-" + id[:8]
 
 	//Create results folder
 	if _, errFolder := os.Stat(folder); os.IsNotExist(errFolder) {
 		if errMkDir := os.Mkdir(folder, os.ModeDir); errMkDir != nil {
-			log.Fatalln("Saving: error while saving file : ", errMkDir)
 			return "", errMkDir
 		}
 	}
 
+	buffer := new(bytes.Buffer)
+
+	//Encode Struct
+	encoder := gob.NewEncoder(buffer)
+	if errEncoding := encoder.Encode(&forest); errEncoding != nil {
+		return "", errEncoding
+	}
+	//Hash Data
+	sha256 := sha256.New()
+	if _, errSha256 := sha256.Write(buffer.Bytes()); errSha256 != nil {
+		return "", errSha256
+	}
+
+	hash := hex.EncodeToString(sha256.Sum(nil))
+
+	//add hash to name
+	fileName += "-" + hash + ".bin"
+
 	//Check if file already exists (just in case...)
 	fileName = folder + fileName
 	if _, errExits := os.Stat(fileName); !os.IsNotExist(errExits) {
-		log.Fatalln("Saving: error while saving file : ", errExits)
 		return "", errExits
 	}
-
 	//Create the File
 	if resultFile, errFile = os.Create(fileName); errFile == nil {
 		defer resultFile.Close()
 	} else {
-		log.Fatalln("Saving: error while saving file : ", errFile)
 		return "", errFile
 	}
-	//Encode Struct
-	encoder := gob.NewEncoder(resultFile)
-	if errEncoding := encoder.Encode(forest); errEncoding != nil {
-		return "", errEncoding
+
+	//Write into file
+	if _, errWrite := resultFile.Write(buffer.Bytes()); errWrite != nil {
+		return "", errWrite
 	}
 
 	return fileName, nil

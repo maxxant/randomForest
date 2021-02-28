@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"os"
 
-	randomforest "github.com/MandelV/randomForest"
+	randomforest "github.com/MandelV/randomForest/v2"
 	"github.com/petar/GoMNIST"
 )
 

@@ -1,11 +1,12 @@
 package test
+
 import (
 	"fmt"
 	"math/rand"
 	"testing"
 
-	randomforest "github.com/MandelV/randomForest"
-	"github.com/MandelV/randomForest/tests/generator"
+	randomforest "github.com/MandelV/randomForest/v2"
+	"github.com/MandelV/randomForest/v2/tests/generator"
 )
 
 //TestDemo simple Random Foresr exaple

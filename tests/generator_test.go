@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/MandelV/randomForest/tests/generator"
+	"github.com/MandelV/randomForest/v2/tests/generator"
 )
 
 //Example of generated dataset

@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	randomforest "github.com/MandelV/randomForest"
+	randomforest "github.com/MandelV/randomForest/v2"
 )
 
 func TestSimple(t *testing.T) {
