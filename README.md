@@ -65,7 +65,7 @@ Will Save the forest structure into binary file
 
 File name format:
 ```
-forest-UUID.bin
+forest-UUID[:8]+sha256.bin
 ```
 
 ```go
