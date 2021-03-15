@@ -2,10 +2,12 @@ package randomforest
 
 import (
 	"bytes"
+	"compress/zlib"
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"os"
@@ -212,7 +214,7 @@ func (forest *Forest) newTree(index int, wg *sync.WaitGroup) {
 }
 
 //Save Will save the state of the forest into file
-func (forest *Forest) Save(folder string) (string, error) {
+func (forest *Forest) Save(folder string, compress bool) (string, error) {
 
 	var resultFile *os.File
 	var errFile error
@@ -235,9 +237,21 @@ func (forest *Forest) Save(folder string) (string, error) {
 	if errEncoding := encoder.Encode(&forest); errEncoding != nil {
 		return "", errEncoding
 	}
+
+	var binForest *bytes.Buffer = buffer
+	if compress {
+		var bufferCompressed *bytes.Buffer = new(bytes.Buffer)
+		wCompress := zlib.NewWriter(bufferCompressed)
+		if _, err := wCompress.Write(buffer.Bytes()); err != nil {
+			return "", err
+		}
+		wCompress.Close()
+		binForest = bufferCompressed
+	}
+
 	//Hash Data
 	sha256 := sha256.New()
-	if _, errSha256 := sha256.Write(buffer.Bytes()); errSha256 != nil {
+	if _, errSha256 := sha256.Write(binForest.Bytes()); errSha256 != nil {
 		return "", errSha256
 	}
 
@@ -259,7 +273,7 @@ func (forest *Forest) Save(folder string) (string, error) {
 	}
 
 	//Write into file
-	if _, errWrite := resultFile.Write(buffer.Bytes()); errWrite != nil {
+	if _, errWrite := resultFile.Write(binForest.Bytes()); errWrite != nil {
 		return "", errWrite
 	}
 
@@ -280,14 +294,38 @@ func Load(pathForest string) (*Forest, error) {
 		return nil, errorForestFile
 	}
 
-	decoder := gob.NewDecoder(forestFile)
+	buffer := bytes.NewBuffer(nil)
+	if _, errCopy := io.Copy(buffer, forestFile); errCopy != nil {
+		return nil, errCopy
+	}
+	scratch := buffer.Bytes()[:2]
+	//Check if file is compressed
+	if scratch[0] == 0x78 && scratch[1] == 0x9c {
+
+		if r, errZlib := zlib.NewReader(buffer); errZlib != nil {
+			return nil, errZlib
+		} else {
+			io.Copy(buffer, r)
+			r.Close()
+		}
+		return decodeToForest(buffer)
+	} else {
+		return decodeToForest(buffer)
+	}
+}
+
+//decodeToForest will decode Reader to Forest
+func decodeToForest(r io.Reader) (*Forest, error) {
+
+	decoder := gob.NewDecoder(r)
 	forest := &Forest{}
 
 	if errDecoder := decoder.Decode(&forest); errDecoder != nil {
-
 		return nil, errDecoder
 	}
+
 	return forest, nil
+
 }
 
 // PrintFeatureImportance print list of features
