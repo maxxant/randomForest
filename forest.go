@@ -213,6 +213,30 @@ func (forest *Forest) newTree(index int, wg *sync.WaitGroup) {
 	mux.Unlock()
 }
 
+//ToBytes convert forest to byte
+func (forest *Forest) ToBytes(compress bool) ([]byte, error) {
+	buffer := new(bytes.Buffer)
+
+	//Encode Struct
+	encoder := gob.NewEncoder(buffer)
+	if errEncoding := encoder.Encode(&forest); errEncoding != nil {
+		return nil, errEncoding
+	}
+
+	var binForest *bytes.Buffer = buffer
+	if compress {
+		var bufferCompressed *bytes.Buffer = new(bytes.Buffer)
+		wCompress := zlib.NewWriter(bufferCompressed)
+		if _, err := wCompress.Write(buffer.Bytes()); err != nil {
+			return nil, err
+		}
+		wCompress.Close()
+		binForest = bufferCompressed
+	}
+
+	return binForest.Bytes(), nil
+}
+
 //Save Will save the state of the forest into file
 func (forest *Forest) Save(folder string, compress bool) (string, error) {
 
@@ -230,28 +254,13 @@ func (forest *Forest) Save(folder string, compress bool) (string, error) {
 		}
 	}
 
-	buffer := new(bytes.Buffer)
-
-	//Encode Struct
-	encoder := gob.NewEncoder(buffer)
-	if errEncoding := encoder.Encode(&forest); errEncoding != nil {
-		return "", errEncoding
+	buffer, errBUF := forest.ToBytes(compress)
+	if errBUF != nil {
+		return "", errBUF
 	}
-
-	var binForest *bytes.Buffer = buffer
-	if compress {
-		var bufferCompressed *bytes.Buffer = new(bytes.Buffer)
-		wCompress := zlib.NewWriter(bufferCompressed)
-		if _, err := wCompress.Write(buffer.Bytes()); err != nil {
-			return "", err
-		}
-		wCompress.Close()
-		binForest = bufferCompressed
-	}
-
 	//Hash Data
 	sha256 := sha256.New()
-	if _, errSha256 := sha256.Write(binForest.Bytes()); errSha256 != nil {
+	if _, errSha256 := sha256.Write(buffer); errSha256 != nil {
 		return "", errSha256
 	}
 
@@ -273,7 +282,7 @@ func (forest *Forest) Save(folder string, compress bool) (string, error) {
 	}
 
 	//Write into file
-	if _, errWrite := resultFile.Write(binForest.Bytes()); errWrite != nil {
+	if _, errWrite := resultFile.Write(buffer); errWrite != nil {
 		return "", errWrite
 	}
 
