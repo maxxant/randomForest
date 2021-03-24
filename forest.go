@@ -317,14 +317,14 @@ func Load(pathForest string) (*Forest, error) {
 			io.Copy(buffer, r)
 			r.Close()
 		}
-		return decodeToForest(buffer)
+		return DecodeToForest(buffer)
 	} else {
-		return decodeToForest(buffer)
+		return DecodeToForest(buffer)
 	}
 }
 
-//decodeToForest will decode Reader to Forest
-func decodeToForest(r io.Reader) (*Forest, error) {
+//DecodeToForest will decode Reader to Forest
+func DecodeToForest(r io.Reader) (*Forest, error) {
 
 	decoder := gob.NewDecoder(r)
 	forest := &Forest{}
