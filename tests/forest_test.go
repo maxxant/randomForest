@@ -24,9 +24,10 @@ func TestSaving(t *testing.T) {
 	forest.Data = forestData
 	forest.Train(1000)
 
-	if fileName, err := forest.Save("saved/", true); err != nil {
+	if fileName, err := forest.Save("saved/", false); err != nil {
 		t.Error(err)
 	} else {
+		println(fileName)
 
 		if _, err := os.Stat(fileName); os.IsNotExist(err) {
 			t.Error(err)
@@ -37,7 +38,6 @@ func TestSaving(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestToBytes(t *testing.T) {
@@ -79,4 +79,33 @@ func TestLoading(t *testing.T) {
 	if len(results) != 4 {
 		t.Error("Error with vote")
 	}
+}
+
+func TestByteToForest(t *testing.T) {
+
+	var forestByte []byte
+	var errToByte error
+	if forest, errForest := randomforest.Load("saved/test.bin"); errForest != nil {
+		t.Error(errForest)
+		return
+	} else {
+		if forestByte, errToByte = forest.ToBytes(true); errToByte != nil {
+			t.Error(errToByte)
+			return
+		}
+
+		forest, err := randomforest.ByteToForest(forestByte)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		results := forest.Vote([]float64{0.1, 0.1, 0.1, 0.1})
+
+		fmt.Println(results)
+		if len(results) != 4 {
+			t.Error("Error with vote")
+		}
+	}
+
 }

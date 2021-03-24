@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -307,24 +308,87 @@ func Load(pathForest string) (*Forest, error) {
 	if _, errCopy := io.Copy(buffer, forestFile); errCopy != nil {
 		return nil, errCopy
 	}
-	scratch := buffer.Bytes()[:2]
 	//Check if file is compressed
-	if scratch[0] == 0x78 && scratch[1] == 0x9c {
-
-		if r, errZlib := zlib.NewReader(buffer); errZlib != nil {
-			return nil, errZlib
+	if ok, err := isCompressed(buffer); err == nil && ok {
+		if b, err := unCompress(buffer); err == nil {
+			return decodeToForest(b)
 		} else {
-			io.Copy(buffer, r)
-			r.Close()
+			return nil, err
 		}
-		return DecodeToForest(buffer)
+
+	} else if err != nil {
+		return nil, err
+
 	} else {
-		return DecodeToForest(buffer)
+
+		return decodeToForest(buffer)
 	}
 }
 
-//DecodeToForest will decode Reader to Forest
-func DecodeToForest(r io.Reader) (*Forest, error) {
+//ByteToForest Converts byte array representation of Forest to Forest
+func ByteToForest(forestBytes []byte) (*Forest, error) {
+
+	buffer := bytes.NewBuffer(forestBytes)
+
+	if ok, err := isCompressed(buffer); err == nil && ok {
+
+		if unCompressBuff, errUnComp := unCompress(buffer); errUnComp == nil {
+			return decodeToForest(unCompressBuff)
+		} else {
+			return nil, errUnComp
+		}
+
+	} else if err != nil {
+		return nil, err
+	} else {
+		return decodeToForest(buffer)
+	}
+
+	return nil, nil
+}
+
+//isCompressed checks if buffer is compressed by zlib
+func isCompressed(buffer *bytes.Buffer) (bool, error) {
+	if buffer == nil {
+		return false, errors.New("buffer is nil")
+	}
+	scratch := buffer.Bytes()[:2]
+	if scratch[0] == 0x78 && scratch[1] == 0x9c {
+		return true, nil
+	}
+	return false, nil
+}
+
+//unCompress unzips
+func unCompress(reader io.Reader) (*bytes.Buffer, error) {
+
+	buffer := bytes.NewBuffer(nil)
+	if _, errCopy := io.Copy(buffer, reader); errCopy != nil {
+		return nil, errCopy
+	}
+
+	if ok, err := isCompressed(buffer); err == nil && ok {
+
+		if r, errZlib := zlib.NewReader(buffer); errZlib == nil {
+			io.Copy(buffer, r)
+			r.Close()
+
+		} else {
+			return nil, errZlib
+		}
+
+	} else if err != nil {
+		return nil, err
+
+	} else {
+		return nil, errors.New("no zlib magic number")
+	}
+
+	return buffer, nil
+}
+
+//decodeToForest will decode Reader to Forest
+func decodeToForest(r io.Reader) (*Forest, error) {
 
 	decoder := gob.NewDecoder(r)
 	forest := &Forest{}
