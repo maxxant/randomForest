@@ -44,9 +44,10 @@ func TestDemoX(t *testing.T) {
 		}
 		if bestI == res[i] {
 			s++
-		} else {
-			//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", s)
 		}
+		// else {
+		// 	//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", s)
+		// }
 
 		//
 		vote = forest.WeightVote(data[i])
@@ -60,9 +61,10 @@ func TestDemoX(t *testing.T) {
 		}
 		if bestI == res[i] {
 			sw++
-		} else {
-			//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", sw)
 		}
+		// else {
+		// 	//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", sw)
+		// }
 
 	}
 	fmt.Println("try", n, "times")

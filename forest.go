@@ -1,21 +1,12 @@
 package randomforest
 
 import (
-	"bytes"
-	"compress/zlib"
-	"crypto/sha256"
-	"encoding/gob"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
 	"math"
 	"math/rand"
-	"os"
 	"sort"
 	"sync"
 
-	"github.com/google/uuid"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -214,193 +205,6 @@ func (forest *Forest) newTree(index int, wg *sync.WaitGroup) {
 	mux.Unlock()
 }
 
-//ToBytes convert forest to byte
-func (forest *Forest) ToBytes(compress bool) ([]byte, error) {
-	buffer := new(bytes.Buffer)
-
-	//Encode Struct
-	encoder := gob.NewEncoder(buffer)
-	if errEncoding := encoder.Encode(&forest); errEncoding != nil {
-		return nil, errEncoding
-	}
-
-	var binForest *bytes.Buffer = buffer
-	if compress {
-		var bufferCompressed *bytes.Buffer = new(bytes.Buffer)
-		wCompress := zlib.NewWriter(bufferCompressed)
-		if _, err := wCompress.Write(buffer.Bytes()); err != nil {
-			return nil, err
-		}
-		wCompress.Close()
-		binForest = bufferCompressed
-	}
-
-	return binForest.Bytes(), nil
-}
-
-//Save Will save the state of the forest into file
-func (forest *Forest) Save(folder string, compress bool) (string, error) {
-
-	var resultFile *os.File
-	var errFile error
-	var fileName string = ""
-	//Create File Name
-	id := uuid.New().String()
-	fileName = "forest-" + id[:8]
-
-	//Create results folder
-	if _, errFolder := os.Stat(folder); os.IsNotExist(errFolder) {
-		if errMkDir := os.Mkdir(folder, os.ModeDir); errMkDir != nil {
-			return "", errMkDir
-		}
-	}
-
-	buffer, errBUF := forest.ToBytes(compress)
-	if errBUF != nil {
-		return "", errBUF
-	}
-	//Hash Data
-	sha256 := sha256.New()
-	if _, errSha256 := sha256.Write(buffer); errSha256 != nil {
-		return "", errSha256
-	}
-
-	hash := hex.EncodeToString(sha256.Sum(nil))
-
-	//add hash to name
-	fileName += "-" + hash + ".bin"
-
-	//Check if file already exists (just in case...)
-	fileName = folder + fileName
-	if _, errExits := os.Stat(fileName); !os.IsNotExist(errExits) {
-		return "", errExits
-	}
-	//Create the File
-	if resultFile, errFile = os.Create(fileName); errFile == nil {
-		defer resultFile.Close()
-	} else {
-		return "", errFile
-	}
-
-	//Write into file
-	if _, errWrite := resultFile.Write(buffer); errWrite != nil {
-		return "", errWrite
-	}
-
-	return fileName, nil
-}
-
-//Load load forest from file
-func Load(pathForest string) (*Forest, error) {
-
-	if _, errExits := os.Stat(pathForest); os.IsNotExist(errExits) {
-		return nil, errExits
-	}
-
-	var forestFile *os.File = nil
-	var errorForestFile error
-
-	if forestFile, errorForestFile = os.Open(pathForest); errorForestFile != nil {
-		return nil, errorForestFile
-	}
-
-	buffer := bytes.NewBuffer(nil)
-	if _, errCopy := io.Copy(buffer, forestFile); errCopy != nil {
-		return nil, errCopy
-	}
-	//Check if file is compressed
-	if ok, err := isCompressed(buffer); err == nil && ok {
-		if b, err := unCompress(buffer); err == nil {
-			return decodeToForest(b)
-		} else {
-			return nil, err
-		}
-
-	} else if err != nil {
-		return nil, err
-
-	} else {
-
-		return decodeToForest(buffer)
-	}
-}
-
-//ByteToForest Converts byte array representation of Forest to Forest
-func ByteToForest(forestBytes []byte) (*Forest, error) {
-
-	buffer := bytes.NewBuffer(forestBytes)
-
-	if ok, err := isCompressed(buffer); err == nil && ok {
-
-		if unCompressBuff, errUnComp := unCompress(buffer); errUnComp == nil {
-			return decodeToForest(unCompressBuff)
-		} else {
-			return nil, errUnComp
-		}
-
-	} else if err != nil {
-		return nil, err
-	} else {
-		return decodeToForest(buffer)
-	}
-
-	return nil, nil
-}
-
-//isCompressed checks if buffer is compressed by zlib
-func isCompressed(buffer *bytes.Buffer) (bool, error) {
-	if buffer == nil {
-		return false, errors.New("buffer is nil")
-	}
-	scratch := buffer.Bytes()[:2]
-	if scratch[0] == 0x78 && scratch[1] == 0x9c {
-		return true, nil
-	}
-	return false, nil
-}
-
-//unCompress unzips
-func unCompress(reader io.Reader) (*bytes.Buffer, error) {
-
-	buffer := bytes.NewBuffer(nil)
-	if _, errCopy := io.Copy(buffer, reader); errCopy != nil {
-		return nil, errCopy
-	}
-
-	if ok, err := isCompressed(buffer); err == nil && ok {
-
-		if r, errZlib := zlib.NewReader(buffer); errZlib == nil {
-			io.Copy(buffer, r)
-			r.Close()
-
-		} else {
-			return nil, errZlib
-		}
-
-	} else if err != nil {
-		return nil, err
-
-	} else {
-		return nil, errors.New("no zlib magic number")
-	}
-
-	return buffer, nil
-}
-
-//decodeToForest will decode Reader to Forest
-func decodeToForest(r io.Reader) (*Forest, error) {
-
-	decoder := gob.NewDecoder(r)
-	forest := &Forest{}
-
-	if errDecoder := decoder.Decode(&forest); errDecoder != nil {
-		return nil, errDecoder
-	}
-
-	return forest, nil
-
-}
-
 // PrintFeatureImportance print list of features
 func (forest *Forest) PrintFeatureImportance() {
 	imp := make([]float64, forest.Features)
@@ -558,33 +362,33 @@ func (branch *Branch) vote(x []float64) []float64 {
 	return branch.Branch0.vote(x)
 }
 
-func (branch *Branch) print() {
-	if branch.IsLeaf {
-		fmt.Printf("%s ... LEAF %v\tsize: %6d\tgini: %5.4f\n",
-			repeat("_", branch.Depth*3), branch.LeafValue, branch.Size, branch.Gini)
-	} else {
-		fmt.Printf("%s ... size: %6d\tattr: %3d\tgini: %5.4f %5.4f \t\tvalue: %4.3f\n",
-			repeat("_", branch.Depth*3), branch.Size, branch.Attribute, branch.Gini, branch.GiniGain, branch.Value)
-		branch.Branch0.print()
-		branch.Branch1.print()
-		fmt.Printf("%s\n", repeat("_", branch.Depth*3))
-	}
-}
+// func (branch *Branch) print() {
+// 	if branch.IsLeaf {
+// 		fmt.Printf("%s ... LEAF %v\tsize: %6d\tgini: %5.4f\n",
+// 			repeat("_", branch.Depth*3), branch.LeafValue, branch.Size, branch.Gini)
+// 	} else {
+// 		fmt.Printf("%s ... size: %6d\tattr: %3d\tgini: %5.4f %5.4f \t\tvalue: %4.3f\n",
+// 			repeat("_", branch.Depth*3), branch.Size, branch.Attribute, branch.Gini, branch.GiniGain, branch.Value)
+// 		branch.Branch0.print()
+// 		branch.Branch1.print()
+// 		fmt.Printf("%s\n", repeat("_", branch.Depth*3))
+// 	}
+// }
 
-func (branch *Branch) branches() int {
-	if branch.IsLeaf {
-		return 1
-	}
-	return branch.Branch0.branches() + branch.Branch1.branches()
-}
+// func (branch *Branch) branches() int {
+// 	if branch.IsLeaf {
+// 		return 1
+// 	}
+// 	return branch.Branch0.branches() + branch.Branch1.branches()
+// }
 
-func repeat(s string, n int) string {
-	z := s
-	for i := 0; i < n; i++ {
-		z = z + s
-	}
-	return z
-}
+// func repeat(s string, n int) string {
+// 	z := s
+// 	for i := 0; i < n; i++ {
+// 		z = z + s
+// 	}
+// 	return z
+// }
 
 func gini(data []int) float64 {
 	sum := 0

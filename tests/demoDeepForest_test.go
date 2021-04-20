@@ -40,9 +40,10 @@ func TestDeepForest(t *testing.T) {
 		}
 		if bestI == res[i] {
 			s++
-		} else {
-			//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", s)
 		}
+		//  else {
+		// 	//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", s)
+		// }
 	}
 	fmt.Println("try", n, "times")
 	fmt.Printf("Correct:        %5.2f %%\n", float64(s)*100/float64(n))
@@ -65,9 +66,10 @@ func TestDeepForest(t *testing.T) {
 		}
 		if bestI == res[i] {
 			s++
-		} else {
-			//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", s)
 		}
+		// else {
+		// 	//fmt.Println("TEST", i, "VOTE", vote, data[i], "=", res[i], "\ts=", s)
+		// }
 	}
 	fmt.Println("try", n, "times")
 	fmt.Printf("Correct:        %5.2f %%\n", float64(s)*100/float64(n))
