@@ -21,5 +21,11 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+    - name: Basic Test
+      run: go test -v ./tests/basic_test.go
+
+    - name: Continuous Test
+      run: go test -v ./tests/continuous_test.go
+
+    - name: Save Forest Test
+      run: go test -v ./tests/forest_saving_test.go
