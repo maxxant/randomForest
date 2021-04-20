@@ -8,13 +8,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 )
 
 //Mkdir helper, creates directory if not exists
-func Mkdir(path string, perm fs.FileMode) error {
+func Mkdir(path string, perm os.FileMode) error {
 
 	if _, errFolder := os.Stat(path); os.IsNotExist(errFolder) {
 		if errMkDir := os.MkdirAll(path, perm); errMkDir != nil {
