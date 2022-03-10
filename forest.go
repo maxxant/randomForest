@@ -4,13 +4,17 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"runtime"
 	"sort"
 	"sync"
 
 	"gonum.org/v1/gonum/stat"
 )
 
-var mux = &sync.Mutex{}
+var (
+	mux        = &sync.Mutex{}
+	NumWorkers = runtime.NumCPU() // max number of concurrent goroutines during training
+)
 
 //Forest je base class for whole forest with database, properties of Forest and trees.
 type Forest struct {
@@ -22,6 +26,7 @@ type Forest struct {
 	MFeatures         int        // attributes for choose proper split
 	NTrees            int        // number of trees
 	NSize             int        // len of data
+	MaxDepth          int        // max depth of forest
 	FeatureImportance []float64  //stats of FeatureImportance
 }
 
@@ -50,19 +55,28 @@ type Branch struct {
 	Depth            int
 }
 
+func (forest *Forest) buildNewTrees(firstIndex int, trees int) {
+	// constrain parallelism, use buffered channel as counting semaphore
+	s := make(chan bool, NumWorkers)
+	for i := 0; i < trees; i++ {
+		s <- true
+		go func(j int) {
+			defer func() { <-s }()
+			forest.newTree(j)
+		}(firstIndex + i)
+	}
+	// wait for all trees to finish
+	for i := 0; i < NumWorkers; i++ {
+		s <- true
+	}
+}
+
 // Train run training process. Parameter is number of calculated trees.
 func (forest *Forest) Train(trees int) {
 	forest.defaults()
 	forest.NTrees = trees
 	forest.Trees = make([]Tree, forest.NTrees)
-	var wg sync.WaitGroup
-	wg.Add(trees)
-	for i := 0; i < trees; i++ {
-		go forest.newTree(i, &wg)
-		//forest.newTree(i, &wg)
-		//fmt.Println(i)
-	}
-	wg.Wait()
+	forest.buildNewTrees(0, trees)
 	imp := make([]float64, forest.Features)
 	for i := 0; i < trees; i++ {
 		z := forest.Trees[i].importance(forest)
@@ -93,16 +107,11 @@ func (forest *Forest) AddDataRow(data []float64, class int, max int, newTrees in
 		forest.Data.Class = forest.Data.Class[1:]
 	}
 	forest.defaults()
-	var wg sync.WaitGroup
-	wg.Add(newTrees)
 	index := len(forest.Trees)
 	for i := 0; i < newTrees; i++ {
 		forest.Trees = append(forest.Trees, Tree{})
 	}
-	for i := 0; i < newTrees; i++ {
-		go forest.newTree(index+i, &wg)
-	}
-	wg.Wait()
+	forest.buildNewTrees(index, newTrees)
 	//remove old trees
 	if len(forest.Trees) > maxTrees && maxTrees > 0 {
 		forest.Trees = forest.Trees[len(forest.Trees)-maxTrees:]
@@ -129,6 +138,9 @@ func (forest *Forest) defaults() {
 		} else if forest.LeafSize > 50 {
 			forest.LeafSize = 50
 		}
+	}
+	if forest.MaxDepth == 0 {
+		forest.MaxDepth = 10
 	}
 }
 
@@ -161,7 +173,7 @@ func (forest *Forest) WeightVote(x []float64) []float64 {
 			}
 			total += w
 		} else {
-			fmt.Println("wv", e, w, total)
+			//fmt.Println("wv", e, w, total)
 		}
 	}
 	for j := 0; j < forest.Classes; j++ {
@@ -171,8 +183,7 @@ func (forest *Forest) WeightVote(x []float64) []float64 {
 }
 
 // Calculate a new tree in forest.
-func (forest *Forest) newTree(index int, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (forest *Forest) newTree(index int) {
 	//data
 	used := make([]bool, forest.NSize)
 	x := make([][]float64, forest.NSize)
@@ -253,7 +264,7 @@ func (branch *Branch) build(forest *Forest, x [][]float64, class []int, depth in
 	branch.Size = len(class)
 	branch.Depth = depth
 
-	if (len(x) <= forest.LeafSize) || (branch.Gini == 0) {
+	if (len(x) <= forest.LeafSize) || (branch.Gini == 0) || branch.Depth == forest.MaxDepth {
 		branch.IsLeaf = true
 		branch.LeafValue = make([]float64, forest.Classes)
 		for i, r := range classCount {
@@ -347,9 +358,10 @@ func (branch *Branch) importance(imp []float64) {
 	if branch.IsLeaf {
 		return
 	}
-	imp[branch.Attribute] += float64(branch.Size) * branch.GiniGain
+	imp[branch.Attribute] += float64(branch.Size) * branch.Gini
 	branch.Branch0.importance(imp)
 	branch.Branch1.importance(imp)
+
 }
 
 func (branch *Branch) vote(x []float64) []float64 {
