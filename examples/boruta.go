@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"math/rand"
 
-	randomforest "github.com/malaschitz/randomForest"
-	"github.com/malaschitz/randomForest/examples/img"
+	"github.com/MandelV/randomForest/v2/examples/img"
+
+	randomforest "github.com/MandelV/randomForest/v2"
+
 	"github.com/petar/GoMNIST"
 )
 

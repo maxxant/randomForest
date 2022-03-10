@@ -98,6 +98,6 @@ func ExampleMNIST() {
 	//Output: Trees: 10 Results: 96.0%
 }
 
-func main() {
+func test1() {
 	ExampleMNIST()
 }
